@@ -71,14 +71,12 @@ public class BugDTOHelper {
     public static Bug toEntity(BugDTO bugDTO) {
         Bug bug = new Bug();
 
-        bug.setId(bugDTO.getId());
         bug.setTitle(bugDTO.getTitle());
         bug.setDescription(bugDTO.getDescription());
         bug.setTargetDate(bugDTO.getTargetDate());
         bug.setStatus(bugDTO.getStatus());
         bug.setFixedVersion(bugDTO.getFixedVersion());
         bug.setSeverity(bugDTO.getSeverity());
-
 
         return bug;
     }

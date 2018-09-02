@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 @Stateless
 public class BugManagementService implements BugManagement {
 
-    static Logger log = LogManager.getLogger(AuthenticationManagementController.class.getName());
     @EJB
     private BugPersistenceManager bugPersistenceManager;
 
@@ -81,41 +80,35 @@ public class BugManagementService implements BugManagement {
         return filtered;
     }
 
+    private User getUserByUserNameForBug(String username) throws BusinessException {
+        Optional<User> userAssigned = userPersistenceManager.getUserByUsername(username);
+        if (userAssigned.isPresent()) {
+           return userAssigned.get();
+        } else {
+            throw new BusinessException(ExceptionCode.COULD_NOT_CREATE_BUG);
+        }
+    }
 
+
+    /**
+     * Create and save a new bug.
+     * @param bugDTO - Bug to validate and save
+     * @return saved bug.
+     * @throws BusinessException - validation or errors occured.
+     */
     public Bug createBug(BugDTO bugDTO) throws BusinessException {
-        Bug bug = new Bug();
+        Bug bug = BugDTOHelper.toEntity(bugDTO);
         List<User> receivers = new ArrayList<>();
 
-        bug.setTitle(bugDTO.getTitle());
-        bug.setDescription(bugDTO.getDescription());
-        bug.setVersion(bugDTO.getVersion());
-        bug.setFixedVersion(bugDTO.getFixedVersion());
-        bug.setTargetDate(bugDTO.getTargetDate());
-        bug.setSeverity(bugDTO.getSeverity());
         bug.setStatus(Status.NEW);
-
-        Optional<User> userAssigned = userPersistenceManager.getUserByUsername(bugDTO.getAssignedTo().getUsername());
-        if (userAssigned.isPresent()) {
-            bug.setAssignedTo(userAssigned.get());
-            receivers.add(userAssigned.get());
-        } else {
-            throw new BusinessException(ExceptionCode.COULD_NOT_CREATE_BUG);
-        }
-
-        Optional<User> userCreated = userPersistenceManager.getUserByUsername(bugDTO.getCreatedByUser().getUsername());
-        if (userCreated.isPresent()) {
-            bug.setCreatedByUser(userCreated.get());
-            receivers.add(userCreated.get());
-        } else {
-            throw new BusinessException(ExceptionCode.COULD_NOT_CREATE_BUG);
-        }
+        this.setUsersFromDTO(bugDTO, bug);
+        receivers.add(bug.getCreatedByUser());
 
         this.isBugValid(bug);
         bugPersistenceManager.createBug(bug);
         notificationManagementService.sendNotification(TypeNotification.BUG_CREATED, BugDTOHelper.fromEntity(bug), null, receivers);
 
         return bug;
-
     }
 
 
@@ -170,7 +163,6 @@ public class BugManagementService implements BugManagement {
 
         bug.setAssignedTo(assignedTo);
 
-
         return bug;
     }
 
@@ -185,7 +177,6 @@ public class BugManagementService implements BugManagement {
             throw new BusinessException(ExceptionCode.BUG_NOT_EXIST);
         }
         return BugDTOHelper.fromEntity(bug);
-
 
     }
 
